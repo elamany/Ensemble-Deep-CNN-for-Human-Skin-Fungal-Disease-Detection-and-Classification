@@ -26,7 +26,7 @@ if missing:
 
 # Get average size ---
 average_size = GLOBAL_CONFIG.get('average_size', (320, 320))
-print(f"\nTraining models at average image size: 256x25 ")
+print(f"\nTraining models at average image size: ")
 
 # --- 4. Hyperparameters ---
 TRAINING_CONFIG = {
@@ -40,7 +40,7 @@ TRAINING_CONFIG = {
     "warmup": 3
 }
 
-print("\nTraining Configuration (v16):")
+print("\nTraining Configuration:")
 for key, value in TRAINING_CONFIG.items():
     print(f"  {key}: {value}")
 
@@ -90,7 +90,7 @@ def prepare_datasets_from_dirs():
     print(f"  Validation: {len(val_images)} images")
     print(f"  Test: {len(test_images)} images")
 
-    print("\nClass distribution in splits (v16):")
+    print("\nClass distribution in splits:")
     for split_name, labels in [("Training", train_labels), ("Validation", val_labels), ("Test", test_labels)]:
         counts = np.bincount(labels, minlength=len(CLASS_NAMES))
         print(f"  {split_name}: {dict(zip(CLASS_NAMES, counts))}")
@@ -171,7 +171,7 @@ test_generator = DataGenerator(
 def create_training_callbacks(model_name):
     """Create callbacks for training with detailed logging."""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    model_dir = os.path.join(FOLDER_PATHS["models"], f"{model_name}_{timestamp}_v16")
+    model_dir = os.path.join(FOLDER_PATHS["models"], f"{model_name}_{timestamp}")
     os.makedirs(model_dir, exist_ok=True)
 
     callbacks = [
@@ -184,11 +184,11 @@ def create_training_callbacks(model_name):
             min_lr=1e-7, verbose=1
         ),
         tf.keras.callbacks.ModelCheckpoint(
-            filepath=os.path.join(model_dir, f"best_{model_name}_{average_size[0]}x{average_size[1]}_v16.keras"),
+            filepath=os.path.join(model_dir, f"best_{model_name}_{average_size[0]}x{average_size[1]}.keras"),
             monitor='val_accuracy', save_best_only=True, verbose=1
         ),
         tf.keras.callbacks.CSVLogger(
-            filename=os.path.join(model_dir, f"training_history_{model_name}_{average_size[0]}x{average_size[1]}_v16.csv")
+            filename=os.path.join(model_dir, f"training_history_{model_name}_{average_size[0]}x{average_size[1]}.csv")
         ),
         tf.keras.callbacks.TerminateOnNaN()  # Prevent training from continuing with NaN values
     ]
@@ -205,7 +205,7 @@ def plot_learning_curves(history, model_name, save_path):
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
     fig, axes = plt.subplots(1, 2, figsize=(12, 4))
-    #fig.suptitle(f'Learning Curves: {model_name} ({average_size[0]}x{average_size[1]}) (v16)', fontsize=16, fontweight='bold')
+    #fig.suptitle(f'Learning Curves: {model_name} ({average_size[0]}x{average_size[1]})', fontsize=16, fontweight='bold')
 
     # Accuracy plot
     if 'accuracy' in history.history:
@@ -236,12 +236,12 @@ def plot_learning_curves(history, model_name, save_path):
 # Model training function ---
 def train_model_progressive(model, base_model, model_name):
     print(f"\n{'#'*60}")
-    print(f"-------> TRAINING {model_name} MODEL on 256x256 (v16)")
+    print(f"-------> TRAINING {model_name} MODEL")
     print(f"{'#'*60}")
 
     start_time = time.time()
 
-    print("   Stage 1: Training classification head (base model frozen) (v16)")
+    print("   Stage 1: Training classification head (base model frozen)")
     base_model.trainable = False
 
     model.compile(
@@ -264,8 +264,8 @@ def train_model_progressive(model, base_model, model_name):
     print(f"   Best Val Acc in Stage 1 : {best_val_acc_stage1:.4f}")
 
     # Plot Stage 1 learning curves
-    plot_learning_curves(history_stage1, f"{model_name}_Stage1_v16",
-                        os.path.join(FOLDER_PATHS["viz"], f"learning_curves_{model_name}_stage1_{average_size[0]}x{average_size[1]}_v16.png"))
+    plot_learning_curves(history_stage1, f"{model_name}_Stage1_",
+                        os.path.join(FOLDER_PATHS["viz"], f"learning_curves_{model_name}_stage1_{average_size[0]}x{average_size[1]}.png"))
 
 
     print("   Stage 2: Fine-tuning entire model (base model unfrozen) ")
@@ -294,8 +294,8 @@ def train_model_progressive(model, base_model, model_name):
     print(f"   Best Val Acc in Stage 2 : {best_val_acc_stage2:.4f}")
 
     # Plot Stage 2 learning curves
-    plot_learning_curves(history_stage2, f"{model_name}_Stage2_v16",
-                        os.path.join(FOLDER_PATHS["viz"], f"learning_curves_{model_name}_stage2_{average_size[0]}x{average_size[1]}_v16.png"))
+    plot_learning_curves(history_stage2, f"{model_name}_Stage2_",
+                        os.path.join(FOLDER_PATHS["viz"], f"learning_curves_{model_name}_stage2_{average_size[0]}x{average_size[1]}.png"))
 
     # Combine histories for final plot
     combined_history = tf.keras.callbacks.History()
@@ -304,11 +304,11 @@ def train_model_progressive(model, base_model, model_name):
         combined_history.history[key] = history_stage1.history[key] + history_stage2.history[key]
 
     # Plot combined learning curves
-    plot_learning_curves(combined_history, f"{model_name}_Combined_v16",
-                        os.path.join(FOLDER_PATHS["viz"], f"learning_curves_{model_name}_combined_{average_size[0]}x{average_size[1]}_v16.png"))
+    plot_learning_curves(combined_history, f"{model_name}_Combined",
+                        os.path.join(FOLDER_PATHS["viz"], f"learning_curves_{model_name}_combined_{average_size[0]}x{average_size[1]}.png"))
 
     # Save final model
-    final_model_path = os.path.join(model_dir, f"final_{model_name}_{average_size[0]}x{average_size[1]}_v16.keras")
+    final_model_path = os.path.join(model_dir, f"final_{model_name}_{average_size[0]}x{average_size[1]}.keras")
     model.save(final_model_path)
     print(f"Final model saved to : {final_model_path}")
 
@@ -317,13 +317,13 @@ def train_model_progressive(model, base_model, model_name):
     best_val_acc = max(best_val_acc_stage1, best_val_acc_stage2)
 
     elapsed_time = time.time() - start_time
-    print(f"Training completed in {elapsed_time/60:.2f} minutes (v16)")
+    print(f"Training completed in {elapsed_time/60:.2f} minutes")
 
     return model, combined_history, model_dir, best_val_acc, final_train_acc
 
 # --- 12. Train models ---
 print("\n" + "="*80)
-print(f"--- STARTING MODEL TRAINING AT RESOLUTION: {average_size[0]}×{average_size[1]} (v16) ---")
+print(f"--- STARTING MODEL TRAINING AT RESOLUTION: {average_size[0]}×{average_size[1]} ---")
 print("="*80)
 
 backbones = ["VGG16", "ResNet50V2"]
@@ -366,7 +366,7 @@ for model_name in backbones:
         continue
 
 # --- 13. Save training results ---
-training_results_path = os.path.join(FOLDER_PATHS["clinical_metrics"], "training_results_v16.json")
+training_results_path = os.path.join(FOLDER_PATHS["clinical_metrics"], "training_results.json")
 training_results = {
     "resolution": average_size,
     "models_trained": list(trained_models.keys()),
@@ -399,9 +399,8 @@ print(f"\nTraining results saved: {training_results_path}")
 
 # --- 14. Final summary ---
 print("\n" + "="*80)
-print("TRAINING SUMMARY (v16)")
+print("TRAINING SUMMARY")
 print("="*80)
-print(f"Resolution used: 256x256 pixels")
 print(f"Models trained: {', '.join(trained_models.keys())}")
 print("\nBest Validation Accuracies:")
 for name, acc in validation_accuracies.items():
