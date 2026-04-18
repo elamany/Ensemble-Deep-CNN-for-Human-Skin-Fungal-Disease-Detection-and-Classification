@@ -62,7 +62,6 @@ NUM_CLASSES = len(CLASS_NAMES)
 SEED = 42
 np.random.seed(SEED)
 tf.random.set_seed(SEED)
-resolution=[320,320]
 
 # --- Helper functions ---
 def load_best_ensemble_config():
@@ -112,6 +111,7 @@ def find_model_directory(model_name):
         return None
 
 def find_model_file(model_dir, model_name, resolution_label):
+    """Find the model file in the model directory with the matching resolution"""
     try:
         # List all .keras files in the model directory
         model_files = [f for f in os.listdir(model_dir) if f.endswith('.keras')]
@@ -219,14 +219,25 @@ def load_stacking_meta_model(ensemble_config):
         print(f"Error loading stacking meta-model: {e}")
         return None
 
-def preprocess_images_for_inference(img, target_size):
+def preprocess_image_for_inference(img, target_size):
+    """Preprocess image with the same pipeline used during training"""
     try:
+        # Convert to RGB and numpy array
         img = img.convert("RGB")
         x = np.array(img)
-        transform = A.Compose([A.Resize(height=256, width=256),A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))])
+
+        # Apply transforms matching training pipeline
+        transform = A.Compose([
+            A.Resize(height=target_size[0], width=target_size[1]),
+            A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
+        ])
+
         transformed = transform(image=x)
         processed_img = transformed['image']
+
+        # Add batch dimension
         return np.expand_dims(processed_img, axis=0), processed_img
+
     except Exception as e:
         print(f"Preprocessing error: {e}")
         return None, None
@@ -235,7 +246,7 @@ def run_ensemble_prediction(models, ensemble_config, img_array):
     """Run ensemble prediction using the configured method"""
     try:
         best_ensemble = ensemble_config['best_ensemble']
-        resolution = [256,256] #ensemble_config['resolution']
+        resolution = ensemble_config['resolution']
 
         # Get predictions from each model
         predictions = []
@@ -320,7 +331,7 @@ def run_weighted_average_fallback(models, ensemble_config, img_array):
         return CLASS_NAMES[pred_class], confidence * 100, avg_pred, "Simple Average"
 
 def display_image(img):
-    """Display image in a pixel box for clear visualization"""
+    """Display image in a 350x350 pixel box for clear visualization"""
     plt.figure(figsize=(3.5, 3.5), dpi=100)  # 3.5 inches * 100 DPI = 350 pixels
     plt.imshow(img)
     plt.axis('off')
@@ -328,27 +339,10 @@ def display_image(img):
     plt.tight_layout()
     plt.show()
 
-def preprocess_image_for_inference(img, target_size):
-    try:
-        img = img.convert("RGB")
-        x = np.array(img)
-        #resize and normalize
-        transform = A.Compose([
-            A.Resize(height=320, width=320),
-            A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
-        ])
-        transformed = transform(image=x)
-        processed_img = transformed['image']
-        return np.expand_dims(processed_img, axis=0), processed_img
-
-    except Exception as e:
-        print(f"Preprocessing error: {e}")
-        return None, None
-
 def main_demo():
     """Main interactive demo function"""
     print("\n" + "="*60)
-    print("REAL TIME TINEA CLASSIFICATION DEMO (v16)")
+    print("REAL TIME TINEA CLASSIFICATION DEMO")
     print("="*60)
 
     # Step 1: Load ensemble configuration
@@ -383,7 +377,8 @@ def main_demo():
     print(f"\nSystem ready for inference at {resolution[0]}x{resolution[1]} resolution")
     print(f"   Using {best_ensemble} ensemble with {len(models)} models")
 
-    print(f"\nChoose Input Method")
+    # Step 2: Input Method
+    print(f"\nStep 2: Choose Input Method")
     print("  [1] Upload local image file")
     print("  [2] Enter public image URL")
     input_choice = input("\nEnter choice (1 or 2): ").strip()
@@ -420,13 +415,19 @@ def main_demo():
         print("Invalid choice")
         return
 
+    # Display the image in 350x350 view
+    print("\nStep 3: Displaying input image in 350x350 view...")
     display_image(img)
-    img_array, processed_img = preprocess_images_for_inference(img, resolution)
+
+    # Step 4: Preprocessing
+    print("\nStep 4: Preprocessing image for inference...")
+    img_array, processed_img = preprocess_image_for_inference(img, resolution)
     if img_array is None:
         print("Preprocessing failed")
         return
 
-    print(f"\n Running inference with {best_ensemble} ensemble...")
+    # Step 5: Run Inference
+    print(f"\nStep 5: Running inference with {best_ensemble} ensemble...")
     try:
         pred_class, conf, probs, actual_ensemble = run_ensemble_prediction(
             models, ensemble_config, img_array
@@ -436,6 +437,7 @@ def main_demo():
         print(f"Inference failed: {e}")
         return
 
+    # Step 6: Determine display class based on confidence
     if conf < 70:
         display_class = "Low-confidence / Unknown"
     else:
@@ -443,7 +445,7 @@ def main_demo():
 
     # Step 7: Display results in console
     print("\n" + "="*60)
-    print("PREDICTION RESULTS ")
+    print("PREDICTION RESULTS")
     print("="*60)
     print(f"Ensemble Method: {actual_ensemble}")
     print(f"Image Resolution: {resolution[0]}x{resolution[1]}")
@@ -451,7 +453,7 @@ def main_demo():
     print(f"Confidence: {conf:.1f}%")
 
     if conf < 70:
-        print("\nWarning: Low confidence prediction.")
+        print("\nWarning: Low confidence prediction. Clinical review recommended.")
 
     print("\nClass Probabilities:")
     print("-" * 40)
