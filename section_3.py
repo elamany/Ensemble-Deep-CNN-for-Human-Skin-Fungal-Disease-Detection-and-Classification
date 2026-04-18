@@ -67,7 +67,7 @@ GLOBALS_TO_EXPORT = {
 }
 
 # Save model configuration for later sections
-model_config_path = os.path.join(FOLDER_PATHS["clinical_metrics"], "model_configuration_v18.json")
+model_config_path = os.path.join(FOLDER_PATHS["clinical_metrics"], "model_configuration.json")
 model_config = {
     "backbones": GLOBAL_CONFIG["MODEL_NAMES"],
     "input_shape": [average_size[0], average_size[1], 3],
