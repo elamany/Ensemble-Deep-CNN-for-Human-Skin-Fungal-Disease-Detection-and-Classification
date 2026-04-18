@@ -101,33 +101,69 @@ To ensure dataset quality, the following automated techniques are applied:
 
 - File integrity checks to remove corrupted images  
 - Laplacian variance to detect and remove blurry images  
-- Bilateral filtering to reduce noise  
+- Bilateral filtering to reduce noise
+- Applies CLAHE for contrast enhancement 
 
 ```python
-import cv2
-
-THRESHOLD = 100
-
-def is_blurry(image):
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    return cv2.Laplacian(gray, cv2.CV_64F).var() < THRESHOLD
+def preprocess_image(image_path):
+    try:
+        img = Image.open(image_path).convert('RGB')
+        img.verify()
+        img = Image.open(image_path).convert('RGB')
+        img_array = np.array(img)
+        img.close()
+        gray = cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY)
+        #remove blurry image
+        laplacian_var = cv2.Laplacian(gray, cv2.CV_64F).var()
+        if laplacian_var < 50:
+            return None
+        #denoise
+        img_array = cv2.bilateralFilter(img_array, d=5, sigmaColor=50, sigmaSpace=50)
+        #apply CLAHE to enhance low contrast features
+        transform = A.Compose([A.CLAHE(clip_limit=1.5, tile_grid_size=(16, 16), always_apply=True)])
+        img_array = transform(image=img_array)["image"]
+        return img_array
+    except Exception as e:
+        return None
 ```
 
 ---
 
-## 2.2 Adaptive Image Resizing + CLAHE
+## 2.2 Adaptive Image Resizing
 
 - Automatically determines optimal image size  
-- Applies CLAHE for contrast enhancement  
+ 
 
 ```python
-def apply_clahe(img):
-    lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
-    l, a, b = cv2.split(lab)
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
-    cl = clahe.apply(l)
-    merged = cv2.merge((cl,a,b))
-    return cv2.cvtColor(merged, cv2.COLOR_LAB2BGR)
+def calculate_average_image_size(image_paths, sample_size=500):
+    print("\n[2/5] Calculating optimal image size from cleaned dataset...")
+    sampled_paths = image_paths[:min(sample_size, len(image_paths))]
+    widths, heights = [], []
+
+    for img_path in sampled_paths:
+        try:
+            img = cv2.imread(img_path)
+            if img is not None:
+                h, w = img.shape[:2]
+                widths.append(w)
+                heights.append(h)
+        except:
+            continue
+
+    avg_width = int(np.mean(widths)) if widths else 320
+    avg_height = int(np.mean(heights)) if heights else 320
+    avg_size = max(avg_width, avg_height)
+
+    MAX_IMAGE_SIZE = 320
+    avg_size = min(avg_size, MAX_IMAGE_SIZE)
+
+    # Select standard size
+    standard_sizes = [120, 128, 224, 256, 320]
+    selected_size = min(standard_sizes, key=lambda x: abs(x - avg_size))
+    selected_size = min(selected_size, MAX_IMAGE_SIZE)
+
+    print(f"  Selected standard size: {selected_size}×{selected_size}")
+    return (selected_size, selected_size)
 ```
 
 ---
