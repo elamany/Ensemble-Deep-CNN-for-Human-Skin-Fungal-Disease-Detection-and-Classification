@@ -307,22 +307,6 @@ model = load_model('ensemble_model.h5')
 
 ---
 
-## 🔗 Related Repositories
-
-This project is part of a complete end-to-end system including backend APIs and a mobile application:
-
-- 🌐 **Flask Backend API and Flutter Mobile App** 
-  User interface for real-time skin disease detection, Handles model inference, request processing, and deployment logic  
-  👉 [[https://github.com/your-username/flask-fungal-api](https://github.com/elamany/Human-skin-fungal-detection-app)](https://github.com/elamany/Human-skin-fungal-detection-app)  
-
-- 🧠 **Model Training (This Repository)**  
-  Deep learning pipeline, preprocessing, training, and evaluation  
-
-## 📊 Future Improvements
-
-- Add more dermatological conditions  
-- Integrate Grad-CAM for explainability  
----
 
 ## 🧠 Conclusion
 
