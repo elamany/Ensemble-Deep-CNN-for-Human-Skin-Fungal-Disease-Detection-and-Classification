@@ -11,6 +11,12 @@ This project presents an ensemble deep learning framework for automated classifi
 The system combines **VGG16** and **ResNet50V2** using **weighted averaging and stacking** to improve classification accuracy. It includes a full pipeline from preprocessing to real-time inference.
 
 ---
+## 🚀 Data source
+Download dataset from
+Roboflow link
+https://universe.roboflow.com/eczema-veixh/tinea/dataset/1
+kaggle link **link**
+https://www.kaggle.com/datasets/shubhamgoel27/dermnet
 
 ## 🚀 How to Run
 
